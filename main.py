@@ -43,7 +43,7 @@ def find_best_teams(players_df):
     return best_split, min_difference
 
 # Streamlit UI
-st.title("⚽ Balanced Football Team Generator")
+st.title("⚽ Team Generator per dei veri calcetti")
 
 # Load and display player data
 players_df = load_players()
@@ -63,11 +63,11 @@ if len(selected_players) == 10:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.write("### Team A")
+        st.write("### Team A - Bianchi")
         st.dataframe(best_teams[0].set_index("Name"))
 
     with col2:
-        st.write("### Team B")
+        st.write("### Team B - Blu")
         st.dataframe(best_teams[1].set_index("Name"))
 
     st.success(f"✅ Minimum Feature Difference: {min_diff}")
