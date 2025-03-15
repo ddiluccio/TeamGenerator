@@ -12,9 +12,10 @@ def calculate_team_stats(team):
     total_defense = sum(team["Defense"])
     total_pass = sum(team["Pass"])
     total_attack = sum(team["Attack"])
-    return total_defense, total_pass, total_attack
+    total_physic = sum(team["Physic"])  # New feature
+    return total_defense, total_pass, total_attack, total_physic
 
-# Compute the best team split using brute force
+# Compute the best team split balancing all features
 def find_best_teams(players_df):
     players = players_df.to_dict(orient="records")
     best_split = None
@@ -32,12 +33,13 @@ def find_best_teams(players_df):
         stats_A = calculate_team_stats(df_A)
         stats_B = calculate_team_stats(df_B)
 
-        # Compute total difference across all features
-        difference = sum(abs(a - b) for a, b in zip(stats_A, stats_B))
+        # Compute individual feature differences
+        differences = [abs(a - b) for a, b in zip(stats_A, stats_B)]
+        max_difference = max(differences)  # Ensure each feature is balanced
 
         # Check if this split is better
-        if difference < min_difference:
-            min_difference = difference
+        if max_difference < min_difference:
+            min_difference = max_difference
             best_split = (df_A, df_B)
 
     return best_split, min_difference
@@ -70,7 +72,7 @@ if len(selected_players) == 10:
         st.write("### Team B - Blu")
         st.dataframe(best_teams[1].set_index("Name"))
 
-    st.success(f"✅ Minimum Feature Difference: {min_diff}")
+    st.success(f"✅ Minimum Feature Difference (max diff among attributes): {min_diff}")
 
 elif len(selected_players) > 10:
     st.error("⚠️ Please select exactly 10 players!")
