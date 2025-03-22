@@ -40,7 +40,7 @@ def find_best_teams(players_df):
         # Check if this split is better
         if max_difference < min_difference:
             min_difference = max_difference
-            best_split = (df_A, df_B)
+            best_split = (df_A, df_B, stats_A, stats_B)
 
     return best_split, min_difference
 
@@ -59,6 +59,7 @@ if len(selected_players) == 10:
     
     # Compute best team split
     best_teams, min_diff = find_best_teams(selected_df)
+    team_A, team_B, stats_A, stats_B = best_teams
 
     # Display Teams
     st.subheader("🏆 Best Balanced Teams")
@@ -66,13 +67,22 @@ if len(selected_players) == 10:
     col1, col2 = st.columns(2)
     with col1:
         st.write("### Team A - Bianchi")
-        st.dataframe(best_teams[0].set_index("Name"))
+        st.dataframe(team_A.set_index("Name"))
 
     with col2:
         st.write("### Team B - Blu")
-        st.dataframe(best_teams[1].set_index("Name"))
+        st.dataframe(team_B.set_index("Name"))
 
     st.success(f"✅ Minimum Feature Difference (max diff among attributes): {min_diff}")
+
+    # Display summed stats comparison
+    st.subheader("📊 Team Stats Comparison")
+    stats_df = pd.DataFrame({
+        "Feature": ["Defense", "Pass", "Attack", "Physic"],
+        "Team A (Bianchi)": stats_A,
+        "Team B (Blu)": stats_B
+    })
+    st.dataframe(stats_df.set_index("Feature"))
 
 elif len(selected_players) > 10:
     st.error("⚠️ Please select exactly 10 players!")
