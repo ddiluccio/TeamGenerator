@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import itertools
+import random
 
 # Load players from CSV
 @st.cache_data
@@ -18,6 +19,8 @@ def calculate_team_stats(team):
 # Compute the best team split balancing all features
 def find_best_teams(players_df):
     players = players_df.to_dict(orient="records")
+
+    random.shuffle(players)
     best_split = None
     min_difference = float("inf")
 
