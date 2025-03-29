@@ -63,7 +63,13 @@ players_df = load_players()
 st.subheader("Select 10 Players")
 selected_players = st.multiselect("Choose exactly 10 players:", players_df["Name"].tolist())
 
-if len(selected_players) == 10:
+# Abilita il bottone solo se sono selezionati 10 giocatori
+button_disabled = len(selected_players) != 10
+if button_disabled:
+    st.warning("⚠️ Seleziona esattamente 10 giocatori per abilitare il bottone!")
+
+# Bottone per calcolare le squadre
+if st.button("🔄 Genera Squadre", disabled=button_disabled):
     # Filter selected players
     selected_df = players_df[players_df["Name"].isin(selected_players)]
     
@@ -98,6 +104,3 @@ if len(selected_players) == 10:
         st.dataframe(stats_df.set_index("Feature"))
     else:
         st.error("⚠️ Nessuna combinazione valida trovata!")
-
-elif len(selected_players) > 10:
-    st.error("⚠️ Please select exactly 10 players!")
