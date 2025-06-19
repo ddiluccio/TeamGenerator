@@ -127,6 +127,30 @@ elif page == "🛠️ Editor Giocatori":
                 st.success(f"Giocatore '{name}' aggiunto!")
                 st.experimental_rerun()
 
+    st.subheader("✏️ Modifica un giocatore esistente")
+    player_names = players_df["Name"].tolist()
+    selected_player = st.selectbox("Seleziona un giocatore da modificare:", [""] + player_names)
+    
+    if selected_player:
+        player_data = players_df[players_df["Name"] == selected_player].iloc[0]
+    
+        with st.form("edit_player_form"):
+            new_def = st.number_input("Defense", 0, 10, int(player_data["Defense"]))
+            new_pass = st.number_input("Pass", 0, 10, int(player_data["Pass"]))
+            new_att = st.number_input("Attack", 0, 10, int(player_data["Attack"]))
+            new_phy = st.number_input("Physic", 0, 10, int(player_data["Physic"]))
+            updated = st.form_submit_button("💾 Salva Modifiche")
+    
+            if updated:
+                idx = players_df[players_df["Name"] == selected_player].index[0]
+                players_df.at[idx, "Defense"] = new_def
+                players_df.at[idx, "Pass"] = new_pass
+                players_df.at[idx, "Attack"] = new_att
+                players_df.at[idx, "Physic"] = new_phy
+                save_players(players_df)
+                st.success(f"Giocatore '{selected_player}' aggiornato!")
+                st.experimental_rerun()
+    
     st.subheader("❌ Elimina giocatori")
     to_delete = st.multiselect("Seleziona giocatori da eliminare:", players_df["Name"].tolist())
     if st.button("Elimina selezionati"):
