@@ -125,7 +125,7 @@ elif page == "🛠️ Editor Giocatori":
                 updated_df = pd.concat([players_df, new_row], ignore_index=True)
                 save_players(updated_df)
                 st.success(f"Giocatore '{name}' aggiunto!")
-                st.experimental_rerun()
+                st.rerun()
 
     st.subheader("✏️ Modifica un giocatore esistente")
     player_names = players_df["Name"].tolist()
@@ -149,7 +149,7 @@ elif page == "🛠️ Editor Giocatori":
                 players_df.at[idx, "Physic"] = new_phy
                 save_players(players_df)
                 st.success(f"Giocatore '{selected_player}' aggiornato!")
-                st.experimental_rerun()
+                st.rerun()
     
     st.subheader("❌ Elimina giocatori")
     to_delete = st.multiselect("Seleziona giocatori da eliminare:", players_df["Name"].tolist())
@@ -157,4 +157,4 @@ elif page == "🛠️ Editor Giocatori":
         updated_df = players_df[~players_df["Name"].isin(to_delete)]
         save_players(updated_df)
         st.success("Giocatori eliminati.")
-        st.experimental_rerun()
+        st.rerun()
