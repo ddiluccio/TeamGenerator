@@ -2,13 +2,19 @@ import streamlit as st
 import pandas as pd
 import itertools
 import random
+import os
 
-# Load players from CSV
+CSV_FILE = "players.csv"
+
+# -------------- Shared Utilities --------------
 @st.cache_data
-def load_players(filename="players.csv"):
-    return pd.read_csv(filename)
+def load_players():
+    return pd.read_csv(CSV_FILE)
 
-# Calculate team feature sums
+def save_players(df):
+    df.to_csv(CSV_FILE, index=False)
+    st.cache_data.clear()
+
 def calculate_team_stats(team):
     total_defense = sum(team["Defense"])
     total_pass = sum(team["Pass"])
@@ -16,21 +22,15 @@ def calculate_team_stats(team):
     total_physic = sum(team["Physic"])
     return total_defense, total_pass, total_attack, total_physic
 
-# Compute the best team split balancing all features
 def find_best_teams(players_df):
-    # Sort players by name to reduce duplicated combinations
     players = sorted(players_df.to_dict(orient="records"), key=lambda p: p["Name"])
-    
     best_splits = []
     min_difference = float("inf")
 
-    # Generate all possible 5-player combinations for Team A
     for team_A in itertools.combinations(players, 5):
         team_B = [player for player in players if player not in team_A]
-
-        # Avoid mirrored team combinations
-        names_A = sorted(player["Name"] for player in team_A)
-        names_B = sorted(player["Name"] for player in team_B)
+        names_A = sorted(p["Name"] for p in team_A)
+        names_B = sorted(p["Name"] for p in team_B)
         if names_B < names_A:
             continue
 
@@ -39,7 +39,6 @@ def find_best_teams(players_df):
 
         stats_A = calculate_team_stats(df_A)
         stats_B = calculate_team_stats(df_B)
-
         differences = [abs(a - b) for a, b in zip(stats_A, stats_B)]
         max_difference = max(differences)
 
@@ -52,47 +51,86 @@ def find_best_teams(players_df):
     best_split = random.choice(best_splits) if best_splits else None
     return best_split, min_difference, len(best_splits)
 
-# Streamlit UI
-st.title("⚽ Team Generator per dei veri calcetti")
+# -------------- UI: Sidebar Page Select --------------
+st.sidebar.title("📋 Menu")
+page = st.sidebar.selectbox("Vai alla pagina:", ["🏆 Team Generator", "🛠️ Editor Giocatori"])
 
-# Load and display player data
-players_df = load_players()
+# -------------- Page 1: Team Generator --------------
+if page == "🏆 Team Generator":
+    st.title("⚽ Team Generator per dei veri calcetti")
+    players_df = load_players()
 
-st.subheader("Select 10 Players")
-selected_players = st.multiselect("Choose exactly 10 players:", players_df["Name"].tolist())
+    st.subheader("Select 10 Players")
+    selected_players = st.multiselect("Choose exactly 10 players:", players_df["Name"].tolist())
 
-# Abilita il bottone solo se sono selezionati 10 giocatori
-button_disabled = len(selected_players) != 10
-if button_disabled:
-    st.warning("⚠️ Seleziona esattamente 10 giocatori per abilitare il bottone!")
+    button_disabled = len(selected_players) != 10
+    if button_disabled:
+        st.warning("⚠️ Seleziona esattamente 10 giocatori per abilitare il bottone!")
 
-# Bottone per calcolare le squadre
-if st.button("🔄 Genera Squadre", disabled=button_disabled):
-    selected_df = players_df[players_df["Name"].isin(selected_players)]
-    best_teams, min_diff, num_combinations = find_best_teams(selected_df)
+    if st.button("🔄 Genera Squadre", disabled=button_disabled):
+        selected_df = players_df[players_df["Name"].isin(selected_players)]
+        best_teams, min_diff, num_combinations = find_best_teams(selected_df)
 
-    if best_teams:
-        team_A, team_B, stats_A, stats_B = best_teams
+        if best_teams:
+            team_A, team_B, stats_A, stats_B = best_teams
+            st.subheader("🏆 Best Balanced Teams")
+            st.write(f"🔢 Possibili combinazioni con lo stesso punteggio: {num_combinations}")
 
-        st.subheader("🏆 Best Balanced Teams")
-        st.write(f"🔢 Possibili combinazioni con lo stesso punteggio: {num_combinations}")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("### Team A - Bianchi")
+                st.dataframe(team_A.set_index("Name"))
+            with col2:
+                st.write("### Team B - Blu")
+                st.dataframe(team_B.set_index("Name"))
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("### Team A - Bianchi")
-            st.dataframe(team_A.set_index("Name"))
-        with col2:
-            st.write("### Team B - Blu")
-            st.dataframe(team_B.set_index("Name"))
+            st.success(f"✅ Minimum Feature Difference (max diff among attributes): {min_diff}")
 
-        st.success(f"✅ Minimum Feature Difference (max diff among attributes): {min_diff}")
+            st.subheader("📊 Team Stats Comparison")
+            stats_df = pd.DataFrame({
+                "Feature": ["Defense", "Pass", "Attack", "Physic"],
+                "Team A (Bianchi)": stats_A,
+                "Team B (Blu)": stats_B
+            })
+            st.dataframe(stats_df.set_index("Feature"))
+        else:
+            st.error("⚠️ Nessuna combinazione valida trovata!")
 
-        st.subheader("📊 Team Stats Comparison")
-        stats_df = pd.DataFrame({
-            "Feature": ["Defense", "Pass", "Attack", "Physic"],
-            "Team A (Bianchi)": stats_A,
-            "Team B (Blu)": stats_B
-        })
-        st.dataframe(stats_df.set_index("Feature"))
-    else:
-        st.error("⚠️ Nessuna combinazione valida trovata!")
+# -------------- Page 2: Player Editor --------------
+elif page == "🛠️ Editor Giocatori":
+    st.title("🛠️ Modifica i Giocatori")
+    players_df = load_players()
+    st.dataframe(players_df)
+
+    st.subheader("➕ Aggiungi un nuovo giocatore")
+    with st.form("add_player_form"):
+        name = st.text_input("Nome")
+        defense = st.number_input("Defense", 0, 10, 5)
+        _pass = st.number_input("Pass", 0, 10, 5)
+        attack = st.number_input("Attack", 0, 10, 5)
+        physic = st.number_input("Physic", 0, 10, 5)
+        submitted = st.form_submit_button("Aggiungi")
+
+        if submitted:
+            if name.strip() == "":
+                st.warning("Il nome non può essere vuoto!")
+            else:
+                new_row = pd.DataFrame([{
+                    "Name": name.strip(),
+                    "Defense": defense,
+                    "Pass": _pass,
+                    "Attack": attack,
+                    "Physic": physic
+                }])
+                updated_df = pd.concat([players_df, new_row], ignore_index=True)
+                save_players(updated_df)
+                st.success(f"Giocatore '{name}' aggiunto!")
+                st.experimental_rerun()
+
+    st.subheader("❌ Elimina giocatori")
+    to_delete = st.multiselect("Seleziona giocatori da eliminare:", players_df["Name"].tolist())
+    if st.button("Elimina selezionati"):
+        updated_df = players_df[~players_df["Name"].isin(to_delete)]
+        save_players(updated_df)
+        st.success("Giocatori eliminati.")
+        st.experimental_rerun()
