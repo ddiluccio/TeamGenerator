@@ -13,45 +13,43 @@ def calculate_team_stats(team):
     total_defense = sum(team["Defense"])
     total_pass = sum(team["Pass"])
     total_attack = sum(team["Attack"])
-    total_physic = sum(team["Physic"])  # New feature
+    total_physic = sum(team["Physic"])
     return total_defense, total_pass, total_attack, total_physic
 
 # Compute the best team split balancing all features
 def find_best_teams(players_df):
-    players = players_df.to_dict(orient="records")
+    # Sort players by name to reduce duplicated combinations
+    players = sorted(players_df.to_dict(orient="records"), key=lambda p: p["Name"])
     
-    # Shuffle players randomly
-    random.shuffle(players)
-
     best_splits = []
     min_difference = float("inf")
 
-    # Generate all possible 5-player team combinations
+    # Generate all possible 5-player combinations for Team A
     for team_A in itertools.combinations(players, 5):
         team_B = [player for player in players if player not in team_A]
 
-        # Convert lists to DataFrame
+        # Avoid mirrored team combinations
+        names_A = sorted(player["Name"] for player in team_A)
+        names_B = sorted(player["Name"] for player in team_B)
+        if names_B < names_A:
+            continue
+
         df_A = pd.DataFrame(team_A)
         df_B = pd.DataFrame(team_B)
 
-        # Compute team feature sums
         stats_A = calculate_team_stats(df_A)
         stats_B = calculate_team_stats(df_B)
 
-        # Compute individual feature differences
         differences = [abs(a - b) for a, b in zip(stats_A, stats_B)]
-        max_difference = max(differences)  # Ensure each feature is balanced
+        max_difference = max(differences)
 
-        # Check if this split is better or equally good
         if max_difference < min_difference:
             min_difference = max_difference
             best_splits = [(df_A, df_B, stats_A, stats_B)]
         elif max_difference == min_difference:
             best_splits.append((df_A, df_B, stats_A, stats_B))
 
-    # Choose a random best split if multiple exist
     best_split = random.choice(best_splits) if best_splits else None
-
     return best_split, min_difference, len(best_splits)
 
 # Streamlit UI
@@ -70,16 +68,12 @@ if button_disabled:
 
 # Bottone per calcolare le squadre
 if st.button("🔄 Genera Squadre", disabled=button_disabled):
-    # Filter selected players
     selected_df = players_df[players_df["Name"].isin(selected_players)]
-    
-    # Compute best team split
     best_teams, min_diff, num_combinations = find_best_teams(selected_df)
 
     if best_teams:
         team_A, team_B, stats_A, stats_B = best_teams
 
-        # Display Teams
         st.subheader("🏆 Best Balanced Teams")
         st.write(f"🔢 Possibili combinazioni con lo stesso punteggio: {num_combinations}")
 
@@ -87,14 +81,12 @@ if st.button("🔄 Genera Squadre", disabled=button_disabled):
         with col1:
             st.write("### Team A - Bianchi")
             st.dataframe(team_A.set_index("Name"))
-
         with col2:
             st.write("### Team B - Blu")
             st.dataframe(team_B.set_index("Name"))
 
         st.success(f"✅ Minimum Feature Difference (max diff among attributes): {min_diff}")
 
-        # Display summed stats comparison
         st.subheader("📊 Team Stats Comparison")
         stats_df = pd.DataFrame({
             "Feature": ["Defense", "Pass", "Attack", "Physic"],
